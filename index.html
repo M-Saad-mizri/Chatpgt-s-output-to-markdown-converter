@@ -118,137 +118,204 @@ function looksLikeCodeLine(s){
 }
 
 function smartSuggestTransform(raw){
-  // Split into paragraphs and lines
-  const lines = raw.replace(/\r\n/g,"\n").split("\n");
+  raw = raw.replace(/\r\n/g,"\n").trim();
+  const lines = raw.split("\n");
   const out = [];
-  let i=0, inCode=false, codeBlockLines=[];
+  let i = 0;
 
-  // Helper to flush code block
-  const flushCode = () => {
-    if(codeBlockLines.length){
-      out.push("```");
-      out.push(...codeBlockLines.map(l=>l.replace(/\t/g,"    ")));
-      out.push("```");
-      codeBlockLines = [];
-      inCode = false;
-    }
-  };
+  // helpers
+  const isBlank = s => !s || s.trim() === "";
+  const startsWithEmoji = s => /^[\p{Emoji}\u2600-\u27BF]/u.test(s.trim());
+  const looksLikeCodeLine = s => /[{;}=>\(\)\[\]]/.test(s) || /\b(function|const|let|var|int|float|double|cout|cin|return|for|while|do|if|else|switch|case)\b/.test(s) || /^\s{2,}/.test(s);
+  const isTableRow = s => /\|/.test(s) || (/\t/.test(s) && s.split(/\t/).length>1);
+  const isSeparatorLine = s => /^-{3,}\s*$/.test(s) || /^—{3,}\s*$/.test(s) || /^\*\*\*+\s*$/.test(s);
 
-  // Detect ordered list: lines starting with "1." or "1)"
-  let inOrdered=false, inUnordered=false;
-  const flushLists = () => {
-    inOrdered = inUnordered = false;
+  // convert a block of consecutive code-like lines into fenced code block
+  const flushAsCode = (block) => {
+    if(block.length === 0) return;
+    // try to detect language (simple check for cpp keywords)
+    const lang = block.some(l => /\b(int|cout|cin|endl|#include|using namespace|std::)\b/.test(l)) ? "cpp" : "";
+    out.push("```" + lang);
+    out.push(...block);
+    out.push("```");
   };
 
   while(i < lines.length){
-    let L = lines[i];
+    const L = lines[i];
 
-    // preserve leading/trailing blanks
-    if(L.trim()===""){
-      flushCode();
+    // explicit horizontal rule
+    if(isSeparatorLine(L) || /^\s*---\s*$/.test(L)){
       out.push("");
-      flushLists();
+      out.push("---");
+      out.push("");
       i++; continue;
     }
 
-    // Detect a block that is obviously code by heuristics:
-    if(looksLikeCodeLine(L)){
-      // accumulate contiguous code-like lines
-      codeBlockLines.push(L);
-      inCode = true;
-      i++;
-      // continue accumulation
-      while(i < lines.length && looksLikeCodeLine(lines[i])){
-        codeBlockLines.push(lines[i]); i++;
-      }
-      flushCode();
+    // skip leading/trailing whitespace-only lines but keep single blank line
+    if(isBlank(L)){
+      out.push("");
+      i++; 
       continue;
     }
 
-    // Detect explicit "Example:" or "Example -" or "Example —"
-    if(/^\s*Example[:\-\—]\s*/i.test(L) || /^\s*Examples?[:\-\—]\s*/i.test(L)){
-      flushCode();
-      out.push("### Example");
-      // collect following non-empty lines until blank or next heading
-      i++;
-      const exLines = [];
-      while(i < lines.length && lines[i].trim() !== ""){
-        exLines.push(lines[i]); i++;
+    // Table detection: if current line is a table header and next line is a separator with dashes or pipes
+    if(isTableRow(L)){
+      // collect consecutive table-like lines
+      const tableBlock = [];
+      while(i < lines.length && (isTableRow(lines[i]) || isBlank(lines[i]))) {
+        if(!isBlank(lines[i])) tableBlock.push(lines[i].trim());
+        i++;
       }
-      // If exLines look like code -> wrap in ```; else render as blockquote
-      if(exLines.some(ln => looksLikeCodeLine(ln) || exLines.join("\n").match(/;|{|}/))){
-        out.push("```");
-        out.push(...exLines);
-        out.push("```");
+      // Normalize tab-separated rows to pipe table
+      const rows = tableBlock.map(r => {
+        if(r.includes("|")) return r;
+        const cols = r.split(/\t+/).map(c=>c.trim());
+        return "| " + cols.join(" | ") + " |";
+      });
+
+      // If header present without separator, try to add separator line
+      if(rows.length >= 2 && !/^\|?\s*[:-]+/.test(rows[1])){
+        // if second row is not a markdown separator but looks like dashes, convert
+        // else insert a separator with default alignment
+        const headers = rows[0].split("|").filter(Boolean).map(h=>h.trim());
+        const sep = "| " + headers.map(()=> "---").join(" | ") + " |";
+        out.push(rows[0]);
+        out.push(sep);
+        for(let r = 1; r < rows.length; r++) out.push(rows[r]);
       } else {
-        exLines.forEach(ln => out.push("> " + ln));
-      }
-      continue;
-    }
-
-    // Detect table-like lines (contains pipes)
-    if(L.includes("|")){
-      flushCode();
-      // If next line is separator like --- or contains ---, keep both as-is (make as markdown table)
-      out.push(L.trim());
-      i++;
-      continue;
-    }
-
-    // Detect numbered list item
-    if(/^\s*\d+[\.\)]\s+/.test(L)){
-      flushCode();
-      out.push(L.trim());
-      i++;
-      // collect following numbered items automatically
-      while(i < lines.length && /^\s*\d+[\.\)]\s+/.test(lines[i])){
-        out.push(lines[i].trim()); i++;
-      }
-      out.push(""); // add blank after list
-      continue;
-    }
-
-    // Detect unordered list starting with - or *
-    if(/^\s*[-\*]\s+/.test(L)){
-      flushCode();
-      out.push(L.trim());
-      i++;
-      while(i < lines.length && /^\s*[-\*]\s+/.test(lines[i])){
-        out.push(lines[i].trim()); i++;
+        out.push(...rows);
       }
       out.push("");
       continue;
     }
 
-    // Detect headings: all-caps short line, or line ending with ":" and then a block, or title-case short line
+    // Headings: emoji + text or lines in ALL CAPS (short) or lines ending with '–' or ':' used as heading
     const trimmed = L.trim();
-    if(isAllCapsLine(trimmed)){
-      flushCode();
+    if(startsWithEmoji(trimmed)){
+      // strip leading emoji(s)
+      const t = trimmed.replace(/^[\p{Emoji}\u2600-\u27BF]+\s*/u,"").trim();
+      out.push("## " + t);
+      i++; continue;
+    }
+    // lines like "🧩 1. What Are Control Structures?" or "1. What Are..." treat as heading if short
+    if(/^\d+\.\s+[A-Z][\s\S]{0,120}$/.test(trimmed) && trimmed.length < 120){
+      const text = trimmed.replace(/^\d+\.\s+/,"").trim();
+      out.push("## " + text);
+      i++; continue;
+    }
+    // all caps short => heading
+    if(/[A-Z0-9\W]+/.test(trimmed) && trimmed === trimmed.toUpperCase() && trimmed.length < 100 && trimmed.split(" ").length <= 8){
       out.push("## " + trimmed);
       i++; continue;
     }
-    if(/[:]\s*$/.test(trimmed) && trimmed.split(/\s+/).length <= 6){
-      flushCode();
-      out.push("## " + trimmed.replace(/[:]\s*$/,""));
-      i++; continue;
-    }
-    // If line is short (<= 6 words) and next line is blank or next line starts with capital letter - treat as heading
-    const wordsCount = trimmed.split(/\s+/).filter(Boolean).length;
-    const next = (i+1 < lines.length) ? lines[i+1].trim() : "";
-    if(wordsCount <= 7 && next === ""){
-      flushCode();
-      out.push("## " + trimmed);
+    // lines that end with ":" and are short -> subheading
+    if(/:\s*$/.test(trimmed) && trimmed.split(/\s+/).length <= 8){
+      out.push("### " + trimmed.replace(/:\s*$/,""));
       i++; continue;
     }
 
-    // Fallback: treat as paragraph
-    flushCode();
-    out.push(trimmed);
-    i++;
+    // Example blocks: "Example", "Examples", "Coding Practice", "Practice Questions"
+    if(/^\s*(Example|Examples|Coding Practice|Practice Questions|Practice):?/i.test(trimmed)){
+      const heading = trimmed.replace(/:$/,"").trim();
+      out.push("### " + heading);
+      // collect following non-empty lines until blank or next major heading indicator
+      i++;
+      const buff = [];
+      while(i < lines.length && !isBlank(lines[i]) && !/^[\p{Emoji}\u2600-\u27BF]/u.test(lines[i]) && !/^\d+\.\s+[A-Z]/.test(lines[i])){
+        buff.push(lines[i]);
+        i++;
+      }
+      // If buff contains code-like lines, wrap as fenced code, else as blockquote or list
+      if(buff.some(ln => looksLikeCodeLine(ln) || /;/.test(ln))){
+        // if they appear to be several code samples, split by blank lines
+        const blocks = buff.join("\n").split(/\n\s*\n/);
+        blocks.forEach(b=>{
+          if(looksLikeCodeLine(b) || /;/.test(b)) {
+            out.push("```cpp");
+            out.push(...b.split("\n").map(x=>x));
+            out.push("```");
+          } else {
+            b.split("\n").forEach(x => out.push("> " + x));
+          }
+        });
+      } else {
+        buff.forEach(ln => out.push("> " + ln));
+      }
+      out.push("");
+      continue;
+    }
+
+    // Numbered lists and bullet lists detection
+    if(/^\s*\d+[\.\)]\s+/.test(L) || /^\s*[-\*\u2022]\s+/.test(L)){
+      // collect contiguous list lines
+      const listLines = [];
+      while(i < lines.length && (/^\s*\d+[\.\)]\s+/.test(lines[i]) || /^\s*[-\*\u2022]\s+/.test(lines[i]) || /^\s{4,}/.test(lines[i]))){
+        // preserve indentation for nested lists
+        listLines.push(lines[i].replace(/\u2022/,"-"));
+        i++;
+      }
+      out.push(...listLines.map(s => s.trim()));
+      out.push("");
+      continue;
+    }
+
+    // Code block detection: group contiguous code-like lines
+    if(looksLikeCodeLine(L)){
+      const codeBuf = [];
+      while(i < lines.length && (looksLikeCodeLine(lines[i]) || lines[i].trim()==="")){
+        if(lines[i].trim() !== "") codeBuf.push(lines[i]);
+        i++;
+      }
+      flushAsCode(codeBuf);
+      out.push("");
+      continue;
+    }
+
+    // Summary table like "Structure\tKeyword\tWhen to Use" => convert to markdown table
+    if(/Structure\s+Keyword\s+When to Use/i.test(L)){
+      // collect rows until blank
+      const rows = [];
+      while(i < lines.length && !isBlank(lines[i])){
+        rows.push(lines[i]);
+        i++;
+      }
+      // parse rows splitting by tabs or multiple spaces
+      const parsed = rows.map(r => r.split(/\t+| {2,}/).map(c=>c.trim()).filter(Boolean));
+      // write as markdown table
+      const header = parsed[0];
+      out.push("| " + header.join(" | ") + " |");
+      out.push("| " + header.map(()=> "---").join(" | ") + " |");
+      for(let r = 1; r < parsed.length; r++){
+        out.push("| " + parsed[r].join(" | ") + " |");
+      }
+      out.push("");
+      continue;
+    }
+
+    // Fallback: paragraph text. Merge consecutive non-empty lines into a paragraph until blank or heading
+    const para = [];
+    while(i < lines.length && !isBlank(lines[i]) && !isTableRow(lines[i]) && !isSeparatorLine(lines[i]) && !/^\s*#{1,6}\s+/.test(lines[i])){
+      // stop if next line looks like a heading (all caps or emoji)
+      if(i+1 < lines.length && (lines[i+1].trim() === "")) {
+        para.push(lines[i].trim());
+        i++;
+        break;
+      }
+      // break if next is explicit heading-like
+      if(lines[i+1] && (lines[i+1].trim() === lines[i+1].trim().toUpperCase() && lines[i+1].trim().length < 80) ) {
+        para.push(lines[i].trim());
+        i++;
+        break;
+      }
+      para.push(lines[i].trim());
+      i++;
+    }
+    out.push(para.join(" "));
+    out.push("");
   }
 
-  flushCode();
-  return out.join("\n");
+  // final cleanup: remove excessive blank lines
+  return out.join("\n").replace(/\n{3,}/g,"\n\n").trim();
 }
 
 /* ---------- Buttons & interactions ---------- */
