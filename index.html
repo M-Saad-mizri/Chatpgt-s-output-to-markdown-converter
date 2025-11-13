@@ -410,3 +410,220 @@ document.getElementById('btnDownloadPDF').addEventListener('click', async ()=>{
 renderPreview(easyMDE.value());
 </script>
 </body>
+
+  <h1>Version 2</h1>
+
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ChatGPT Text → Markdown & PDF Converter</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 1rem;
+    background: #f2f2f2;
+    color: #222;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  textarea {
+    flex: 1 1 45%;
+    height: 70vh;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: #fff;
+    color: #000; /* ✅ Black text */
+    resize: none;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+  #preview {
+    flex: 1 1 45%;
+    height: 70vh;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    background: #fff;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+  .buttons {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 0.4rem;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  button:hover {
+    background: #0056b3;
+  }
+  input[type="file"] {
+    display: none;
+  }
+  label.upload-btn {
+    background: #28a745;
+    padding: 0.6rem 1rem;
+    color: white;
+    border-radius: 0.4rem;
+    cursor: pointer;
+  }
+  label.upload-btn:hover {
+    background: #1e7e34;
+  }
+  @media (max-width: 768px) {
+    .container {
+      flex-direction: column;
+    }
+    textarea, #preview {
+      flex: 1 1 100%;
+      height: 70vh;
+    }
+  }
+</style>
+</head>
+<body>
+<h1>ChatGPT → Markdown & PDF Converter</h1>
+
+<div class="buttons">
+  <button onclick="autoPaste()">📋 Auto Paste</button>
+  <label class="upload-btn">
+    📂 Upload .txt
+    <input type="file" id="fileInput" accept=".txt" onchange="handleFileUpload(event)">
+  </label>
+  <button onclick="downloadMD()">⬇️ Download .MD</button>
+  <button onclick="downloadPDF()">⬇️ Download .PDF</button>
+</div>
+
+<div class="container">
+  <textarea id="inputText" placeholder="Auto-paste or upload your text here..."></textarea>
+  <div id="preview"></div>
+</div>
+
+<script>
+  const inputText = document.getElementById("inputText");
+  const preview = document.getElementById("preview");
+
+  // ✅ Auto update Markdown preview as user types
+  inputText.addEventListener("input", () => updatePreview(inputText.value));
+
+  function updatePreview(text) {
+    const markdown = transformTextToMarkdown(text);
+    preview.innerHTML = marked.parse(markdown);
+  }
+
+  // ✅ Auto paste clipboard text
+  async function autoPaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      inputText.value = text;
+      updatePreview(text);
+    } catch (err) {
+      alert("Clipboard access denied. Please paste manually.");
+    }
+  }
+
+  // ✅ Handle .txt file upload
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      inputText.value = e.target.result;
+      updatePreview(e.target.result);
+    };
+    reader.readAsText(file);
+  }
+
+  // ✅ Download as Markdown
+  function downloadMD() {
+    const filename = prompt("Enter file name:", "my-markdown-file");
+    if (!filename) return;
+    const markdown = transformTextToMarkdown(inputText.value);
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename + ".md";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ✅ Download as PDF
+  function downloadPDF() {
+    const filename = prompt("Enter file name:", "my-markdown-file");
+    if (!filename) return;
+    const element = preview;
+    const opt = {
+      margin: 10,
+      filename: filename + ".pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    };
+    html2pdf().from(element).set(opt).save();
+  }
+
+  // ✅ Core function — convert ChatGPT text to Markdown
+  function transformTextToMarkdown(text) {
+    const lines = text.split("\n");
+    let md = "";
+    let inCode = false;
+
+    for (let line of lines) {
+      line = line.trimEnd();
+
+      // Headings
+      if (/^---+$/.test(line)) continue;
+      if (/^🌟|^PHASE/i.test(line)) md += `# ${line}\n\n`;
+      else if (/^🧩|^🧠|^⚙️|^🔁|^🧾|^💻|^🟢|^🟠|^🔵|^🟡/.test(line))
+        md += `## ${line}\n\n`;
+
+      // Code detection (C++ style)
+      else if (/^(int|for|if|else|switch|cout|cin|while|do)\b/.test(line)) {
+        if (!inCode) {
+          md += "```cpp\n";
+          inCode = true;
+        }
+        md += line + "\n";
+      } else if (inCode && line === "") {
+        md += "```\n\n";
+        inCode = false;
+      }
+
+      // Lists
+      else if (/^\d+\.\s+/.test(line)) md += line + "\n";
+      else if (/^[-*]\s+/.test(line)) md += line + "\n";
+
+      // Tables (rough detection)
+      else if (/\t| {3,}/.test(line)) md += line + "\n";
+      else md += line + "\n";
+    }
+    if (inCode) md += "```\n";
+    return md.trim();
+  }
+</script>
+</body>
+</html>
