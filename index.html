@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ChatGPT → Smart Markdown → PDF (client-side)</title>
 
-  <!-- EasyMDE CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+ <!-- EasyMDE CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+
+<!-- Correct FontAwesome version (5.x, not 4.x) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
   <style>
     :root{--accent:#2b8aef;--bg:#f7f9fb}
@@ -94,7 +96,6 @@ const easyMDE = new EasyMDE({
   spellChecker: false,
   status: false,
   toolbar: ["bold","italic","heading","|","quote","unordered-list","ordered-list","code","link","image","|","preview","side-by-side","fullscreen"],
-  autoDownloadFontAwesome: false,
   minHeight: "36vh"
 });
 
