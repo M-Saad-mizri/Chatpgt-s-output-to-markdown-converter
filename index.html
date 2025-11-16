@@ -27,6 +27,29 @@
     input[type=file]{display:none}
     .small{padding:.35rem .5rem;font-size:.9rem}
     footer{padding:1rem;text-align:center;color:#666;font-size:.9rem}
+    .editor-toolbar button {
+  color: black !important;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+/* Text labels for each toolbar button */
+.tb-bold::before        { content: "B"; font-weight:700; }
+.tb-italic::before      { content: "I"; font-style:italic; }
+.tb-heading::before     { content: "H"; }
+
+.tb-quote::before       { content: ">"; }
+.tb-ul::before          { content: "•"; }
+.tb-ol::before          { content: "1."; }
+.tb-code::before        { content: "</>"; }
+
+.tb-link::before        { content: "Link"; }
+.tb-image::before       { content: "Img"; }
+
+.tb-preview::before     { content: "Preview"; }
+.tb-sbs::before         { content: "Side"; }
+.tb-full::before        { content: "Full"; }
     @media (max-width:900px){.container{grid-template-columns:1fr}}
   </style>
 </head>
@@ -92,11 +115,92 @@
 /* ---------- Init editor ---------- */
 const easyMDE = new EasyMDE({
   element: document.getElementById('editorTextarea'),
-  autofocus: false,
   spellChecker: false,
   status: false,
-  toolbar: ["bold","italic","heading","|","quote","unordered-list","ordered-list","code","link","image","|","preview","side-by-side","fullscreen"],
-  minHeight: "36vh"
+  minHeight: "36vh",
+
+  toolbar: [
+    {
+      name: "bold",
+      action: EasyMDE.toggleBold,
+      className: "tb-bold",
+      title: "Bold"
+    },
+    {
+      name: "italic",
+      action: EasyMDE.toggleItalic,
+      className: "tb-italic",
+      title: "Italic"
+    },
+    {
+      name: "heading",
+      action: EasyMDE.toggleHeadingSmaller,
+      className: "tb-heading",
+      title: "Heading"
+    },
+
+    "|",
+
+    {
+      name: "quote",
+      action: EasyMDE.toggleBlockquote,
+      className: "tb-quote",
+      title: "Quote"
+    },
+    {
+      name: "unordered-list",
+      action: EasyMDE.toggleUnorderedList,
+      className: "tb-ul",
+      title: "Bullet List"
+    },
+    {
+      name: "ordered-list",
+      action: EasyMDE.toggleOrderedList,
+      className: "tb-ol",
+      title: "Number List"
+    },
+
+    {
+      name: "code",
+      action: EasyMDE.toggleCodeBlock,
+      className: "tb-code",
+      title: "Code Block"
+    },
+
+    {
+      name: "link",
+      action: EasyMDE.drawLink,
+      className: "tb-link",
+      title: "Insert Link"
+    },
+    {
+      name: "image",
+      action: EasyMDE.drawImage,
+      className: "tb-image",
+      title: "Insert Image"
+    },
+
+    "|",
+
+    {
+      name: "preview",
+      action: EasyMDE.togglePreview,
+      className: "tb-preview",
+      title: "Preview"
+    },
+    {
+      name: "side-by-side",
+      action: EasyMDE.toggleSideBySide,
+      className: "tb-sbs",
+      title: "Side by Side"
+    },
+    {
+      name: "fullscreen",
+      action: EasyMDE.toggleFullScreen,
+      className: "tb-full",
+      title: "Fullscreen"
+    }
+  ]
 });
 
 /* ---------- Preview rendering ---------- */
