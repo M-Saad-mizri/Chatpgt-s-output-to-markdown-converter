@@ -1,192 +1,164 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Smart Markdown → PDF (client-side)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown to PDF</title>
 
-  <!-- EasyMDE CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+  }
 
-  <style>
-    :root{--accent:#2b8aef;--bg:#f7f9fb}
-    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;margin:0;background:var(--bg);color:#111}
-    header{display:flex;gap:1rem;align-items:center;padding:1rem;background:#fff;border-bottom:1px solid #eee}
-    header h1{font-size:1.05rem;margin:0}
-    .container{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem;align-items:start}
-    .controls{display:flex;color:black;gap:.5rem;flex-wrap:wrap}
-    button{background:var(--accent);color:white;border:0;padding:.55rem .7rem;border-radius:6px;cursor:pointer;font-weight:600}
-    button.ghost{background:transparent;color:var(--accent);border:1px solid #d9e7ff}
-    .panel{background:#fff;border-radius:8px;padding:1rem;box-shadow:0 6px 18px rgba(20,30,60,0.04)}
-    .panel h2{margin-top:0;font-size:.95rem}
-    #preview{padding:1rem;max-height:60vh;overflow:auto;border:1px solid #f0f0f0;border-radius:6px;background:#fff}
-    .top-controls{display:flex;color:black;gap:.5rem;align-items:center}
-    input[type=file]{display:none}
-    .small{padding:.35rem .5rem;font-size:.9rem}
-    footer{padding:1rem;text-align:center;color:#666;font-size:.9rem}
-    .print-area h1, 
-.print-area h2,
-.print-area h3 { page-break-after: avoid; }
+  header {
+    padding: 1rem;
+    background: #111;
+    color: white;
+    text-align: center;
+  }
 
-.print-area pre,
-.print-area table,
-.print-area blockquote {
-  page-break-inside: avoid;
-}
+  .container {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
 
-.print-area img {
-  max-width: 100%;
-}
-    @media (max-width:900px){.container{grid-template-columns:1fr}}
+  textarea {
+    width: 100%;
+    height: 300px;
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    resize: both;
+    overflow: auto;
+  }
 
-    /* === EasyMDE toolbar text labels / visible buttons (no icons) === */
-    .editor-toolbar { gap:6px; }
-    .editor-toolbar button {
-      color: #000 !important;
-      background: transparent !important;
-      border: 1px solid transparent;
-      min-width: 42px;
-      padding: 6px 8px;
-      font-weight: 700;
-      border-radius: 6px;
-      font-size: 13px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+  #preview {
+    width: 100%;
+    min-height: 300px;
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    overflow: auto;
+  }
+
+  input {
+    padding: 0.7rem;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+
+  button {
+    padding: 0.9rem;
+    border: none;
+    border-radius: 6px;
+    background: #0d6efd;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #0a58ca;
+  }
+
+  @media (min-width: 900px) {
+    .container {
+      flex-direction: row;
     }
-    .editor-toolbar button:hover { background: #f0f4fb; border-color: #e0e9ff; }
 
-    /* text labels for toolbar (before pseudo elements) */
-    .tb-bold::before        { content: "B"; }
-    .tb-italic::before      { content: "I"; font-style: italic; }
-    .tb-heading::before     { content: "H"; }
-    .tb-quote::before       { content: "»"; }
-    .tb-ul::before          { content: "•"; }
-    .tb-ol::before          { content: "1."; }
-    .tb-code::before        { content: "</>"; }
-    .tb-link::before        { content: "Link"; font-weight:600; font-size:12px; }
-    .tb-image::before       { content: "Img"; font-weight:600; font-size:12px; }
-    .tb-preview::before     { content: "Preview"; font-weight:600; font-size:12px; }
-    .tb-sbs::before         { content: "Side"; font-weight:600; font-size:12px; }
-    .tb-full::before        { content: "Full"; font-weight:600; font-size:12px; }
+    textarea, #preview {
+      width: 50%;
+      height: 500px;
+    }
+  }
+</style>
 
-    /* Markdown-preview print-friendly styles (used when exporting PDF) */
-    .printable {
-      background: #fff;
-      color: #111;
-      padding: 24px;
-      box-sizing: border-box;
-      width: 794px; /* A4 width at 96dpi ~ 794px */
-      margin: 0 auto;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .printable h1,.printable h2,.printable h3{page-break-after:avoid}
-    .printable pre { background:#f6f8fa;padding:12px;border-radius:6px;overflow:auto;white-space:pre-wrap;word-wrap:break-word }
-    .printable code { background:#f6f8fa;padding:2px 4px;border-radius:4px }
-    .printable table { border-collapse: collapse; width:100%; margin: 8px 0; }
-    .printable table th, .printable table td { border:1px solid #ddd; padding:8px; text-align:left; }
-    .printable img { max-width:100%; height:auto; }
-    /* Make sure large blocks avoid breaking across pages awkwardly */
-    .printable h2, .printable h3, .printable pre, .printable table, .printable blockquote {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    /* page break utility: insert `---PAGE-BREAK---` to force new page */
-    .page-break { page-break-before: always; break-before: page; height:1px; }
-  </style>
 </head>
 <body>
 
 <header>
-  <h1>Smart Markdown → PDF</h1>
-  <div style="flex:1"></div>
-  <div class="controls">
-    <button id="btnAutoPaste" title="Read text from clipboard (requires permission)">Auto-paste</button>
-    <label for="fileTxt" class="ghost small" style="cursor:pointer;padding:.4rem .6rem;border-radius:6px;border:1px solid #ddd;">Upload .txt</label>
-    <input id="fileTxt" type="file" accept=".txt,text/plain" />
-    <button id="btnSuggest" class="small ghost">Smart Suggest</button>
-    <button id="btnReset" class="small ghost">Reset</button>
-  </div>
+  <h2>Markdown Editor → PDF</h2>
 </header>
 
-<div class="container">
-  <div class="panel">
-    <h2>Editor</h2>
-    <textarea style="max-height:70vh;color:#111" id="editorTextarea" placeholder="Paste ChatGPT output here..."></textarea>
-
-    <div style="margin-top:.7rem;display:flex;gap:.5rem;align-items:center">
-      <button id="btnDownloadMD" class="small">Download .md</button>
-      <button id="btnDownloadPDF" class="small">Download .pdf</button>
-      <button id="btnCopyMD" class="small ghost">Copy Markdown</button>
-      <div style="flex:1"></div>
-      <span style="color:#666;font-size:.9rem">Tip: run <strong>Smart Suggest</strong> then edit.</span>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Live Preview</h2>
-    <div id="preview" aria-live="polite"></div>
-  </div>
+<div style="padding: 1rem;">
+  <input type="text" id="filename" placeholder="Enter PDF file name...">
 </div>
 
-<footer>
-  Runs fully in your browser — no server. Smart-suggest is heuristic and may need editing.
-</footer>
+<div class="container">
+  <textarea id="editor" placeholder="Write your markdown here..."></textarea>
+  <div id="preview"></div>
+</div>
 
-<!-- Libraries (CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<div style="padding: 1rem;">
+  <button onclick="downloadPDF()">Download PDF</button>
+</div>
+
+<!-- Marked.js (Markdown → HTML) -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<!-- html2pdf (HTML → PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-/* ---------- Init EasyMDE with text-only toolbar (no fontawesome) ---------- */
-const easyMDE = new EasyMDE({
-  element: document.getElementById('editorTextarea'),
-  autofocus: false,
-  spellChecker: false,
-  status: false,
-  minHeight: "36vh",
-  toolbar: [
-    { name: "bold",     action: EasyMDE.toggleBold,            className: "tb-bold",   title: "Bold" },
-    { name: "italic",   action: EasyMDE.toggleItalic,          className: "tb-italic", title: "Italic" },
-    { name: "heading",  action: EasyMDE.toggleHeadingSmaller,  className: "tb-heading",title: "Heading" },
-    "|",
-    { name: "quote",    action: EasyMDE.toggleBlockquote,      className: "tb-quote",  title: "Quote" },
-    { name: "unordered",action: EasyMDE.toggleUnorderedList,   className: "tb-ul",     title: "Bullet List" },
-    { name: "ordered",  action: EasyMDE.toggleOrderedList,     className: "tb-ol",     title: "Number List" },
-    { name: "code",     action: EasyMDE.toggleCodeBlock,       className: "tb-code",   title: "Code Block" },
-    { name: "link",     action: EasyMDE.drawLink,              className: "tb-link",   title: "Insert Link" },
-    { name: "image",    action: EasyMDE.drawImage,             className: "tb-image",  title: "Insert Image" },
-    "|",
-    { name: "preview",  action: EasyMDE.togglePreview,         className: "tb-preview",title: "Preview" },
-    { name: "side-by-side", action: EasyMDE.toggleSideBySide,  className: "tb-sbs",    title: "Side by Side" },
-    { name: "fullscreen",   action: EasyMDE.toggleFullScreen,  className: "tb-full",   title: "Fullscreen" }
-  ]
-});
+  const editor = document.getElementById("editor");
+  const preview = document.getElementById("preview");
 
-/* ---------- Preview rendering ---------- */
-const preview = document.getElementById('preview');
-function renderPreview(md){
-  // Convert markdown to HTML using marked
-  preview.innerHTML = marked.parse(md || "");
-}
+  // Live Markdown Preview
+  editor.addEventListener("input", () => {
+    preview.innerHTML = marked.parse(editor.value);
+  });
 
-/* sync editor -> preview */
-easyMDE.codemirror.on("change", () => {
-  renderPreview(easyMDE.value());
-});
+  function downloadPDF() {
+    let filename = document.getElementById("filename").value.trim();
+    if (!filename) {
+      alert("Please enter a file name.");
+      return;
+    }
 
-/* initial render */
-renderPreview(easyMDE.value());
+    // Add page numbers using CSS inside the PDF
+    const pdfElement = document.createElement("div");
+    pdfElement.innerHTML = `
+      <style>
+        @page {
+          margin: 1in;
+        }
+        #pageFooter {
+          position: fixed;
+          bottom: 0;
+          text-align: center;
+          width: 100%;
+          font-size: 12px;
+          color: #555;
+        }
+      </style>
 
-/* ---------- Smart Suggest: transform plain ChatGPT-ish text into markdown ---------- */
-/* This is based on your previous transformer, improved and kept compact. */
-function smartSuggestTransform(raw){
-  if(!raw) return "";
-  raw = raw.replace(/\r\n/g,"\n").replace(/\t/g,"    ").trim();
+      <div>${preview.innerHTML}</div>
+      <div id="pageFooter">
+        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+      </div>
+    `;
+
+    const opt = {
+      margin: 10,
+      filename: filename + ".pdf",
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    };
+
+    html2pdf().from(pdfElement).set(opt).save();
+  }
+</script>
+
+</body>
+</html>  raw = raw.replace(/\r\n/g,"\n").replace(/\t/g,"    ").trim();
   const lines = raw.split("\n");
   const out = [];
   let i = 0;
