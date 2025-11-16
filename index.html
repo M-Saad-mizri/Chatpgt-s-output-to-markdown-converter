@@ -14,13 +14,13 @@
     header{display:flex;gap:1rem;align-items:center;padding:1rem;background:#fff;border-bottom:1px solid #eee}
     header h1{font-size:1.05rem;margin:0}
     .container{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem;}
-    .controls{display:flex;gap:.5rem;flex-wrap:wrap}
+    .controls{display:flex;color: black;gap:.5rem;flex-wrap:wrap}
     button{background:var(--accent);color:white;border:0;padding:.55rem .7rem;border-radius:6px;cursor:pointer;font-weight:600}
     button.ghost{background:transparent;color:var(--accent);border:1px solid #d9e7ff}
     .panel{background:#fff;border-radius:8px;padding:1rem;box-shadow:0 6px 18px rgba(20,30,60,0.04)}
     .panel h2{margin-top:0;font-size:.95rem}
-    #preview{padding:1rem;max-height:70vh;overflow:auto;border:1px solid #f0f0f0;border-radius:6px;background:#fff}
-    .top-controls{display:flex;gap:.5rem;align-items:center}
+    #preview{padding:1rem;max-height:60vh;overflow:auto;border:1px solid #f0f0f0;border-radius:6px;background:#fff}
+    .top-controls{display:flex;color: black;gap:.5rem;align-items:center}
     input[type=file]{display:none}
     .small{padding:.35rem .5rem;font-size:.9rem}
     footer{padding:1rem;text-align:center;color:#666;font-size:.9rem}
@@ -44,7 +44,7 @@
 <div class="container">
   <div class="panel">
     <h2>Editor</h2>
-    <textarea id="editorTextarea" placeholder="Paste ChatGPT output here..."></textarea>
+    <textarea style="max-height: 70vh;" id="editorTextarea" placeholder="Paste ChatGPT output here..."></textarea>
 
     <div style="margin-top:.7rem;display:flex;gap:.5rem;align-items:center">
       <button id="btnDownloadMD" class="small">Download .md</button>
