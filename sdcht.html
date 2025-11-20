@@ -1,16 +1,20 @@
 <!doctype html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Live HTML/CSS/JS Quick Editor — Preview</title>  <!-- CodeMirror 5 (CDN) -->  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <title>Live HTML/CSS/JS Quick Editor — Preview</title>
+
+  <!-- CodeMirror 5 (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/neo.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>  <style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+
+  <style>
     :root{
       --bg: #0f1724;
       --panel: #0b1220;
@@ -68,22 +72,28 @@
     .muted{color:var(--muted)}
     .small{font-size:13px}
     .separator{width:1px;height:28px;background:rgba(255,255,255,0.04);margin:0 8px}
-  </style></head>
-<body>  <div class="topbar">
-    <div class="brand">QuickEdit — live HTML/CSS/JS</div><div class="controls">
-  <div class="seg" title="Preview size">
-    <label><input type="radio" name="size" value="desktop" checked> Desktop</label>
-    <label style="margin-left:6px"><input type="radio" name="size" value="tablet"> Tablet</label>
-    <label style="margin-left:6px"><input type="radio" name="size" value="mobile"> Mobile</label>
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">QuickEdit — live HTML/CSS/JS</div>
+
+    <div class="controls">
+      <div class="seg" title="Preview size">
+        <label><input type="radio" name="size" value="desktop" checked> Desktop</label>
+        <label style="margin-left:6px"><input type="radio" name="size" value="tablet"> Tablet</label>
+        <label style="margin-left:6px"><input type="radio" name="size" value="mobile"> Mobile</label>
+      </div>
+
+      <button id="toggle-editor">Toggle Editor</button>
+      <button id="toggle-preview">Toggle Preview</button>
+      <button id="download">Download .html</button>
+      <button id="clear">Clear (new)</button>
+    </div>
   </div>
 
-  <button id="toggle-editor">Toggle Editor</button>
-  <button id="toggle-preview">Toggle Preview</button>
-  <button id="download">Download .html</button>
-  <button id="clear">Clear (new)</button>
-</div>
-
-  </div>  <main style="padding:12px">
+  <main style="padding:12px">
     <div class="layout">
       <!-- Editor -->
       <section class="panel editor-wrap" id="editorPanel">
@@ -104,34 +114,37 @@
                 <button class="btn" data-insert='&lt;img src="" alt="" /&gt;'>Image</button>
               </div>
             </div>
-          </div><div class="separator"></div>
+          </div>
 
-      <div class="editor-actions">
-        <button id="saveLocal">Save</button>
-        <button id="loadLocal">Load</button>
-        <button id="resetTemplate">Template</button>
-      </div>
+          <div class="separator"></div>
 
-      <div style="margin-left:8px" class="muted small">Height locked to 70vh • editor & preview auto-sync</div>
+          <div class="editor-actions">
+            <button id="saveLocal">Save</button>
+            <button id="loadLocal">Load</button>
+            <button id="resetTemplate">Template</button>
+          </div>
+
+          <div style="margin-left:8px" class="muted small">Height locked to 70vh • editor & preview auto-sync</div>
+        </div>
+
+        <div class="editor" id="editor"></div>
+      </section>
+
+      <!-- Preview -->
+      <section class="panel preview-wrap" id="previewPanel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="muted small">Live preview (auto-updates)</div>
+          <div class="muted small">Local saves: <span id="ls-status">—</span></div>
+        </div>
+
+        <div class="preview-area" id="previewArea">
+          <iframe id="previewFrame" class="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+      </section>
     </div>
+  </main>
 
-    <div class="editor" id="editor"></div>
-  </section>
-
-  <!-- Preview -->
-  <section class="panel preview-wrap" id="previewPanel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div class="muted small">Live preview (auto-updates)</div>
-      <div class="muted small">Local saves: <span id="ls-status">—</span></div>
-    </div>
-
-    <div class="preview-area" id="previewArea">
-      <iframe id="previewFrame" class="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
-    </div>
-  </section>
-</div>
-
-  </main><script>
+<script>
 // ----------------- Utility / Defaults -----------------
 const defaultTemplate = `<!doctype html>
 <html>
@@ -142,7 +155,8 @@ const defaultTemplate = `<!doctype html>
   <style>
     body{font-family:system-ui,Arial;line-height:1.5;padding:20px}
     h1{color:#1167b1}
-  </style></head>
+  </style>
+</head>
 <body>
   <h1>Hello — quick preview</h1>
   <p>Type HTML/CSS/JS on the left and see changes here instantly.</p>
@@ -152,57 +166,217 @@ const defaultTemplate = `<!doctype html>
     console.log('Preview ready')
   <\/script>
 </body>
-</html>`;// ----------------- CodeMirror editor init ----------------- const editorEl = document.getElementById('editor'); const cm = CodeMirror(editorEl, { value: localStorage.getItem('quickedit_code') || defaultTemplate, mode: 'htmlmixed', lineNumbers: true, theme: 'neo', tabSize: 2, lineWrapping: false, });
+</html>`;
+
+// ----------------- CodeMirror editor init -----------------
+const editorEl = document.getElementById('editor');
+const cm = CodeMirror(editorEl, {
+  value: localStorage.getItem('quickedit_code') || defaultTemplate,
+  mode: 'htmlmixed',
+  lineNumbers: true,
+  theme: 'neo',
+  tabSize: 2,
+  lineWrapping: false,
+});
 
 cm.setSize('100%', '70vh');
 
-// ----------------- Preview iframe handling ----------------- const iframe = document.getElementById('previewFrame'); function updatePreview() { const html = cm.getValue(); const doc = iframe.contentDocument || iframe.contentWindow.document; doc.open(); doc.write(html); doc.close(); }
+// ----------------- Preview iframe handling -----------------
+const iframe = document.getElementById('previewFrame');
+function updatePreview() {
+  const html = cm.getValue();
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+}
 
-// initial render updatePreview();
+// initial render
+updatePreview();
 
-// Debounce helper function debounce(fn, wait=250){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)} }
+// Debounce helper
+function debounce(fn, wait=250){
+  let t;
+  return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)}
+}
 
-// Save to localstorage auto const saveToLocal = debounce(()=>{ localStorage.setItem('quickedit_code', cm.getValue()); document.getElementById('ls-status').textContent = new Date().toLocaleTimeString(); }, 800);
+// Save to localstorage auto
+const saveToLocal = debounce(()=>{
+  localStorage.setItem('quickedit_code', cm.getValue());
+  document.getElementById('ls-status').textContent = new Date().toLocaleTimeString();
+}, 800);
 
-// On editor change: update preview, save, and sync scroll cm.on('change', ()=>{ updatePreviewDebounced(); saveToLocal(); }); const updatePreviewDebounced = debounce(updatePreview, 300);
+// On editor change: update preview, save, and sync scroll
+cm.on('change', ()=>{
+  updatePreviewDebounced();
+  saveToLocal();
+});
+const updatePreviewDebounced = debounce(updatePreview, 300);
 
-// Sync scroll positions (editor -> preview) cm.getScrollerElement().addEventListener('scroll', ()=>{ try{ const editorScroller = cm.getScrollerElement(); const ratio = editorScroller.scrollTop / (editorScroller.scrollHeight - editorScroller.clientHeight || 1); const targetDoc = iframe.contentDocument || iframe.contentWindow.document; if(targetDoc && targetDoc.body){ const previewScroller = iframe.contentWindow.document.scrollingElement || targetDoc.documentElement || targetDoc.body; previewScroller.scrollTop = Math.round(ratio * (previewScroller.scrollHeight - previewScroller.clientHeight || 1)); } }catch(e){/ignore/} });
+// Sync scroll positions (editor -> preview)
+cm.getScrollerElement().addEventListener('scroll', ()=>{
+  try{
+    const editorScroller = cm.getScrollerElement();
+    const ratio = editorScroller.scrollTop / (editorScroller.scrollHeight - editorScroller.clientHeight || 1);
+    const targetDoc = iframe.contentDocument || iframe.contentWindow.document;
+    if(targetDoc && targetDoc.body){
+      const previewScroller = iframe.contentWindow.document.scrollingElement || targetDoc.documentElement || targetDoc.body;
+      previewScroller.scrollTop = Math.round(ratio * (previewScroller.scrollHeight - previewScroller.clientHeight || 1));
+    }
+  }catch(e){/*ignore*/}
+});
 
-// Also sync preview scroll -> editor (so user can drag preview) iframe.addEventListener('load', ()=>{ try{ const ed = cm.getScrollerElement(); const pwin = iframe.contentWindow; pwin.addEventListener('scroll', ()=>{ const previewScroller = pwin.document.scrollingElement || pwin.document.body; const ratio = previewScroller.scrollTop / (previewScroller.scrollHeight - previewScroller.clientHeight || 1); ed.scrollTop = Math.round(ratio * (ed.scrollHeight - ed.clientHeight || 1)); }); }catch(e){/* cross-origin may block but iframe is same-origin here */} });
+// Also sync preview scroll -> editor (so user can drag preview)
+iframe.addEventListener('load', ()=>{
+  try{
+    const ed = cm.getScrollerElement();
+    const pwin = iframe.contentWindow;
+    pwin.addEventListener('scroll', ()=>{
+      const previewScroller = pwin.document.scrollingElement || pwin.document.body;
+      const ratio = previewScroller.scrollTop / (previewScroller.scrollHeight - previewScroller.clientHeight || 1);
+      ed.scrollTop = Math.round(ratio * (ed.scrollHeight - ed.clientHeight || 1));
+    });
+  }catch(e){/* cross-origin may block but iframe is same-origin here */}
+});
 
-// ----------------- Quick insert buttons ----------------- document.querySelectorAll('[data-insert]').forEach(btn=>{ btn.addEventListener('click',(e)=>{ const val = btn.getAttribute('data-insert'); const doc = cm.getDoc(); const cursor = doc.getCursor(); doc.replaceRange(val, cursor); cm.focus(); }); });
+// ----------------- Quick insert buttons -----------------
+document.querySelectorAll('[data-insert]').forEach(btn=>{
+  btn.addEventListener('click',(e)=>{
+    const val = btn.getAttribute('data-insert');
+    const doc = cm.getDoc();
+    const cursor = doc.getCursor();
+    doc.replaceRange(val, cursor);
+    cm.focus();
+  });
+});
 
-// Toggle quick panel const quickWrap = document.getElementById('quickInsert'); document.getElementById('openQuick').addEventListener('click', ()=>{ quickWrap.classList.toggle('open'); });
+// Toggle quick panel
+const quickWrap = document.getElementById('quickInsert');
+document.getElementById('openQuick').addEventListener('click', ()=>{
+  quickWrap.classList.toggle('open');
+});
 
-// ----------------- Template / Save / Load ----------------- document.getElementById('saveLocal').addEventListener('click', ()=>{ localStorage.setItem('quickedit_code', cm.getValue()); document.getElementById('ls-status').textContent = new Date().toLocaleTimeString(); alert('Saved to localStorage.'); });
+// ----------------- Template / Save / Load -----------------
+document.getElementById('saveLocal').addEventListener('click', ()=>{
+  localStorage.setItem('quickedit_code', cm.getValue());
+  document.getElementById('ls-status').textContent = new Date().toLocaleTimeString();
+  alert('Saved to localStorage.');
+});
 
-document.getElementById('loadLocal').addEventListener('click', ()=>{ const v = localStorage.getItem('quickedit_code'); if(!v){alert('No saved code found.');return} cm.setValue(v); updatePreview(); });
+document.getElementById('loadLocal').addEventListener('click', ()=>{
+  const v = localStorage.getItem('quickedit_code');
+  if(!v){alert('No saved code found.');return}
+  cm.setValue(v);
+  updatePreview();
+});
 
-document.getElementById('resetTemplate').addEventListener('click', ()=>{ if(!confirm('Replace current content with a fresh template?')) return; cm.setValue(defaultTemplate); updatePreview(); });
+document.getElementById('resetTemplate').addEventListener('click', ()=>{
+  if(!confirm('Replace current content with a fresh template?')) return;
+  cm.setValue(defaultTemplate);
+  updatePreview();
+});
 
-// Clear document.getElementById('clear').addEventListener('click', ()=>{ if(!confirm('Clear editor and local storage?')) return; cm.setValue(''); localStorage.removeItem('quickedit_code'); document.getElementById('ls-status').textContent = '—'; updatePreview(); });
+// Clear
+document.getElementById('clear').addEventListener('click', ()=>{
+  if(!confirm('Clear editor and local storage?')) return;
+  cm.setValue('');
+  localStorage.removeItem('quickedit_code');
+  document.getElementById('ls-status').textContent = '—';
+  updatePreview();
+});
 
-// Download as .html function download(filename, text){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text],{type:'text/html'})); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
+// Download as .html
+function download(filename, text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text],{type:'text/html'}));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
-document.getElementById('download').addEventListener('click', ()=>{ const html = cm.getValue(); const name = prompt('File name (without extension):', 'quick-preview'); if(!name) return; download(name + '.html', html); });
+document.getElementById('download').addEventListener('click', ()=>{
+  const html = cm.getValue();
+  const name = prompt('File name (without extension):', 'quick-preview');
+  if(!name) return;
+  download(name + '.html', html);
+});
 
-// ----------------- Toggle editor / preview full screen ----------------- const editorPanel = document.getElementById('editorPanel'); const previewPanel = document.getElementById('previewPanel'); let editorFull = false, previewFull = false;
+// ----------------- Toggle editor / preview full screen -----------------
+const editorPanel = document.getElementById('editorPanel');
+const previewPanel = document.getElementById('previewPanel');
+let editorFull = false, previewFull = false;
 
-function enterFullscreen(el){ el.classList.add('fullscreen'); } function exitFullscreen(el){ el.classList.remove('fullscreen'); }
+function enterFullscreen(el){
+  el.classList.add('fullscreen');
+}
+function exitFullscreen(el){
+  el.classList.remove('fullscreen');
+}
 
-document.getElementById('toggle-editor').addEventListener('click', ()=>{ editorFull = !editorFull; if(editorFull){ enterFullscreen(editorPanel); previewPanel.style.display = 'none'; } else { exitFullscreen(editorPanel); previewPanel.style.display = ''; } cm.refresh(); });
+document.getElementById('toggle-editor').addEventListener('click', ()=>{
+  editorFull = !editorFull;
+  if(editorFull){
+    enterFullscreen(editorPanel);
+    previewPanel.style.display = 'none';
+  } else {
+    exitFullscreen(editorPanel);
+    previewPanel.style.display = '';
+  }
+  cm.refresh();
+});
 
-document.getElementById('toggle-preview').addEventListener('click', ()=>{ previewFull = !previewFull; if(previewFull){ enterFullscreen(previewPanel); editorPanel.style.display = 'none'; } else { exitFullscreen(previewPanel); editorPanel.style.display = ''; } });
+document.getElementById('toggle-preview').addEventListener('click', ()=>{
+  previewFull = !previewFull;
+  if(previewFull){
+    enterFullscreen(previewPanel);
+    editorPanel.style.display = 'none';
+  } else {
+    exitFullscreen(previewPanel);
+    editorPanel.style.display = '';
+  }
+});
 
-// Close quick panel when clicking outside document.addEventListener('click', (e)=>{ if(!quickWrap.contains(e.target)) quickWrap.classList.remove('open'); });
+// Close quick panel when clicking outside
+document.addEventListener('click', (e)=>{
+  if(!quickWrap.contains(e.target)) quickWrap.classList.remove('open');
+});
 
-// ----------------- Responsive preview sizes ----------------- function setPreviewSize(type){ const area = document.getElementById('previewArea'); if(type === 'mobile'){ area.style.width = '375px'; area.style.maxWidth = '100%'; } else if(type === 'tablet'){ area.style.width = '768px'; area.style.maxWidth = '100%'; } else { area.style.width = '100%'; } } document.querySelectorAll('input[name=size]').forEach(r=>{ r.addEventListener('change', ()=>setPreviewSize(r.value)); }); setPreviewSize('desktop');
+// ----------------- Responsive preview sizes -----------------
+function setPreviewSize(type){
+  const area = document.getElementById('previewArea');
+  if(type === 'mobile'){
+    area.style.width = '375px';
+    area.style.maxWidth = '100%';
+  } else if(type === 'tablet'){
+    area.style.width = '768px';
+    area.style.maxWidth = '100%';
+  } else {
+    area.style.width = '100%';
+  }
+}
+document.querySelectorAll('input[name=size]').forEach(r=>{
+  r.addEventListener('change', ()=>setPreviewSize(r.value));
+});
+setPreviewSize('desktop');
 
-// ----------------- Auto-scroll to changed area (approx) ----------------- // We approximate by syncing scroll percentage (implemented above). For a better // jump-to-element behavior we'd need to parse diffs and add anchors; this // percentage approach works reliably across rendered content.
+// ----------------- Auto-scroll to changed area (approx) -----------------
+// We approximate by syncing scroll percentage (implemented above). For a better
+// jump-to-element behavior we'd need to parse diffs and add anchors; this
+// percentage approach works reliably across rendered content.
 
-// ----------------- Extras: keyboard shortcuts ----------------- window.addEventListener('keydown',(e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 's'){ e.preventDefault(); localStorage.setItem('quickedit_code', cm.getValue()); document.getElementById('ls-status').textContent = new Date().toLocaleTimeString(); alert('Saved to localStorage'); } });
+// ----------------- Extras: keyboard shortcuts -----------------
+window.addEventListener('keydown',(e)=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 's'){
+    e.preventDefault();
+    localStorage.setItem('quickedit_code', cm.getValue());
+    document.getElementById('ls-status').textContent = new Date().toLocaleTimeString();
+    alert('Saved to localStorage');
+  }
+});
 
-// Keep iframe updated when switching full-screen states new MutationObserver(()=>cm.refresh()).observe(editorPanel, {attributes:true,attributeFilter:['class','style']});
+// Keep iframe updated when switching full-screen states
+new MutationObserver(()=>cm.refresh()).observe(editorPanel, {attributes:true,attributeFilter:['class','style']});
 
 </script>
 </body>
