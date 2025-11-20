@@ -1,261 +1,515 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Responsive Live Code Editor</title>
-<style>
-  * {
-    box-sizing: border-box;
-  }
-  body, html {
-    margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; font-family: Arial, sans-serif;
-  }
-  #container {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-  }
-  #editorWrapper {
-    flex-basis: 50%;
-    display: flex;
-    flex-direction: column;
-    border-right: 2px solid #ddd;
-    position: relative;
-    transition: flex-basis 0.3s ease;
-  }
-  #toolbar {
-    background: #f5f5f5;
-    padding: 5px 10px;
-    border-bottom: 1px solid #ccc;
-    display: flex;
-    gap: 6px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  #toolbar button {
-    padding: 0 8px;
-    font-size: 16px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    background: white;
-  }
-  #toggleEditorBtn {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    z-index: 20;
-    padding: 6px 10px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  #codeEditor {
-    flex: 1;
-    width: 100%;
-    font-family: monospace;
-    font-size: 14px;
-    padding: 10px;
-    border: none;
-    resize: none;
-    overflow: auto;
-    outline: none;
-    white-space: pre;
-  }
-  #editorWrapper.closed {
-    flex-basis: 0;
-    overflow: hidden;
-  }
-  #previewWrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-  }
-  #previewToolbar {
-    background: #f5f5f5;
-    padding: 5px 10px;
-    border-bottom: 1px solid #ccc;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  #previewContainer {
-    flex: 1;
-    overflow: auto;
-    background: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  iframe {
-    border: 1px solid #ccc;
-    height: 70vh;
-    width: 100%;
-    max-width: 100%;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Code Editor & Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  /* Responsive preview size presets */
-  .desktop iframe {
-    width: 100%;
-  }
-  .tablet iframe {
-    width: 768px;
-  }
-  .mobile iframe {
-    width: 375px;
-  }
-</style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: #2d2d30;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #007acc;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #005a9e;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #007acc;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .editor-section {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+        }
+
+        .editor-section.collapsed {
+            width: 0;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background: #2d2d30;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .tool-btn {
+            background: #3e3e42;
+            color: #d4d4d4;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #4a4a4f;
+        }
+
+        .editor-container {
+            flex: 1;
+            overflow: auto;
+            height: 70vh;
+        }
+
+        .editor {
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+
+        .preview-section {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #3e3e42;
+            transition: width 0.3s;
+        }
+
+        .preview-section.expanded {
+            width: 100%;
+        }
+
+        .preview-toolbar {
+            background: #2d2d30;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .device-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .device-btn {
+            background: #3e3e42;
+            color: #d4d4d4;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .device-btn.active {
+            background: #007acc;
+        }
+
+        .preview-container {
+            flex: 1;
+            overflow: auto;
+            height: 70vh;
+            background: white;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .mobile-view {
+            width: 375px;
+            margin: 0 auto;
+            height: 100%;
+        }
+
+        .tablet-view {
+            width: 768px;
+            margin: 0 auto;
+            height: 100%;
+        }
+
+        .desktop-view {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-bar {
+            background: #007acc;
+            padding: 5px 15px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>Live Code Editor</h1>
+            <div class="controls">
+                <button id="toggleEditor" class="btn">Hide Editor</button>
+                <button id="formatBtn" class="btn btn-outline">Format Code</button>
+                <button id="resetBtn" class="btn btn-outline">Reset</button>
+            </div>
+        </div>
 
-<div id="container">
-  <div id="editorWrapper">
-    <div id="toolbar" aria-label="Quick insert buttons" role="toolbar">
-      <button type="button" data-insert="<">{"<"}</button>
-      <button type="button" data-insert=">">{">"}</button>
-      <button type="button" data-insert="</">{"</"}</button>
-      <button type="button" data-insert="<hr>">&lt;hr&gt;</button>
-      <button type="button" data-insert="<br>">&lt;br&gt;</button>
-      <button type="button" data-insert='id=""'>id=""</button>
-      <button type="button" data-insert='class=""'>class=""</button>
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="editor-toolbar">
+                    <button class="tool-btn" data-insert="<div>">div</button>
+                    <button class="tool-btn" data-insert="<p>">p</button>
+                    <button class="tool-btn" data-insert="<span>">span</button>
+                    <button class="tool-btn" data-insert="<h1>">h1</button>
+                    <button class="tool-btn" data-insert="<br>">br</button>
+                    <button class="tool-btn" data-insert="<hr>">hr</button>
+                    <button class="tool-btn" data-insert='class=""'>class</button>
+                    <button class="tool-btn" data-insert='id=""'>id</button>
+                    <button class="tool-btn" data-insert="&lt;/&gt;">&lt;/&gt;</button>
+                    <button class="tool-btn" data-insert='&lt;!--  --&gt;'>comment</button>
+                </div>
+                <div class="editor-container">
+                    <textarea id="codeEditor" class="editor" placeholder="Enter your HTML, CSS, and JavaScript here..."></textarea>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-toolbar">
+                    <div class="device-options">
+                        <button class="device-btn active" data-device="desktop">Desktop</button>
+                        <button class="device-btn" data-device="tablet">Tablet</button>
+                        <button class="device-btn" data-device="mobile">Mobile</button>
+                    </div>
+                    <button id="refreshBtn" class="btn">Refresh Preview</button>
+                </div>
+                <div class="preview-container">
+                    <iframe id="previewFrame" class="preview-frame desktop-view"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="statusMessage">Ready</span>
+            <span>Live Preview</span>
+        </div>
     </div>
-    <textarea id="codeEditor" spellcheck="false" aria-label="Code editor - HTML, CSS, JavaScript"></textarea>
-    <button id="toggleEditorBtn" aria-pressed="true" aria-label="Toggle editor visibility">Hide Editor</button>
-  </div>
-  <div id="previewWrapper" class="desktop">
-    <div id="previewToolbar" role="toolbar" aria-label="Responsive preview toggle">
-      <label>
-        <input type="radio" name="previewSize" value="desktop" checked />
-        Desktop
-      </label>
-      <label>
-        <input type="radio" name="previewSize" value="tablet" />
-        Tablet
-      </label>
-      <label>
-        <input type="radio" name="previewSize" value="mobile" />
-        Mobile
-      </label>
-    </div>
-    <div id="previewContainer">
-      <iframe id="livePreview" sandbox="allow-scripts allow-same-origin"></iframe>
-    </div>
-  </div>
-</div>
 
-<script>
-  const editor = document.getElementById('codeEditor');
-  const previewFrame = document.getElementById('livePreview');
-  const toggleBtn = document.getElementById('toggleEditorBtn');
-  const editorWrapper = document.getElementById('editorWrapper');
-  const previewWrapper = document.getElementById('previewWrapper');
-  const toolbar = document.getElementById('toolbar');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const codeEditor = document.getElementById('codeEditor');
+            const previewFrame = document.getElementById('previewFrame');
+            const toggleEditorBtn = document.getElementById('toggleEditor');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const formatBtn = document.getElementById('formatBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const toolButtons = document.querySelectorAll('.tool-btn');
+            const deviceButtons = document.querySelectorAll('.device-btn');
+            const statusMessage = document.getElementById('statusMessage');
+            const editorSection = document.querySelector('.editor-section');
+            const previewSection = document.querySelector('.preview-section');
 
-  // Insert snippet at cursor position in textarea
-  function insertAtCursor(textarea, text) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const val = textarea.value;
-    textarea.value = val.substring(0, start) + text + val.substring(end);
-    textarea.selectionStart = textarea.selectionEnd = start + text.length;
-    textarea.focus();
-    updatePreview();
-    scrollToCaret(textarea);
-  }
-
-  // Update iframe preview content
-  function updatePreview() {
-    const code = editor.value;
-    // Compose HTML with embedded CSS/JS if included in code
-    const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-    doc.open();
-    doc.write(code);
-    doc.close();
-  }
-
-  // Auto-scroll to caret position in textarea
-  function scrollToCaret(textarea) {
-    const pos = textarea.selectionStart;
-    // Create a temporary div to get caret position
-    const div = document.createElement('div');
-    const style = window.getComputedStyle(textarea);
-    for (const prop of ['fontSize','fontFamily','whiteSpace','lineHeight','padding','border','boxSizing','letterSpacing','wordSpacing','textIndent','width','overflow','height']) {
-      div.style[prop] = style[prop];
-    }
-    div.style.position = 'absolute';
-    div.style.visibility = 'hidden';
-    div.style.whiteSpace = 'pre-wrap';
-    div.style.width = style.width;
-    div.style.height = 'auto';
-    div.textContent = textarea.value.substring(0, pos);
-
-    // Append a span where caret is
-    const span = document.createElement('span');
-    span.textContent = textarea.value.substring(pos) || '.';
-    div.appendChild(span);
-    document.body.appendChild(div);
-
-    const topPos = span.offsetTop;
-    // Scroll textarea to show caret with offset
-    textarea.scrollTop = topPos - textarea.clientHeight/2;
-    document.body.removeChild(div);
-  }
-
-  // Toolbar buttons insert quick snippets
-  toolbar.addEventListener('click', e => {
-    if (e.target.tagName === 'BUTTON' && e.target.dataset.insert !== undefined) {
-      insertAtCursor(editor, e.target.dataset.insert);
-    }
-  });
-
-  // On editor input, update preview and scroll to caret
-  editor.addEventListener('input', () => {
-    updatePreview();
-    scrollToCaret(editor);
-  });
-
-  // Toggle editor visibility
-  toggleBtn.addEventListener('click', () => {
-    if (editorWrapper.classList.contains('closed')) {
-      editorWrapper.classList.remove('closed');
-      toggleBtn.textContent = 'Hide Editor';
-      toggleBtn.setAttribute('aria-pressed', 'true');
-      previewWrapper.style.flex = '1';
-    } else {
-      editorWrapper.classList.add('closed');
-      toggleBtn.textContent = 'Show Editor';
-      toggleBtn.setAttribute('aria-pressed', 'false');
-      previewWrapper.style.flex = '1 1 100%';
-    }
-  });
-
-  // Preview responsiveness toggle
-  document.getElementsByName('previewSize').forEach(radio => {
-    radio.addEventListener('change', e => {
-      previewWrapper.classList.remove('desktop', 'tablet', 'mobile');
-      previewWrapper.classList.add(e.target.value);
-    });
-  });
-
-  // Initialize with blank page content
-  editor.value = `<!DOCTYPE html>
-<html lang="en">
+            // Default code template
+            const defaultCode = `<!DOCTYPE html>
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Live Preview</title>
-<style>
-  body { font-family: Arial, sans-serif; padding: 10px; }
-</style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
-<h1>Hello, live preview!</h1>
+    <div class="container">
+        <h1>Welcome to Live Code Editor</h1>
+        <p>Start editing the code to see live changes in the preview!</p>
+        <p>You can add HTML, CSS, and JavaScript in the editor.</p>
+        <button onclick="alert('Hello from JavaScript!')">Click Me</button>
+    </div>
 </body>
 </html>`;
-  updatePreview();
-</script>
 
+            // Initialize
+            function init() {
+                // Load saved code or use default
+                const savedCode = localStorage.getItem('liveEditorCode');
+                codeEditor.value = savedCode || defaultCode;
+                
+                // Update preview
+                updatePreview();
+                
+                // Set up event listeners
+                setupEventListeners();
+            }
+
+            // Set up event listeners
+            function setupEventListeners() {
+                // Auto-update preview with debouncing
+                let updateTimeout;
+                codeEditor.addEventListener('input', function() {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(updatePreview, 500);
+                    statusMessage.textContent = 'Typing...';
+                });
+
+                // Editor toggle
+                toggleEditorBtn.addEventListener('click', function() {
+                    editorSection.classList.toggle('collapsed');
+                    previewSection.classList.toggle('expanded');
+                    toggleEditorBtn.textContent = editorSection.classList.contains('collapsed') 
+                        ? 'Show Editor' 
+                        : 'Hide Editor';
+                });
+
+                // Refresh preview
+                refreshBtn.addEventListener('click', updatePreview);
+
+                // Format code
+                formatBtn.addEventListener('click', function() {
+                    try {
+                        const formatted = formatHTML(codeEditor.value);
+                        codeEditor.value = formatted;
+                        updatePreview();
+                        statusMessage.textContent = 'Code formatted successfully';
+                    } catch (error) {
+                        statusMessage.textContent = 'Error formatting code';
+                        console.error(error);
+                    }
+                });
+
+                // Reset code
+                resetBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to reset all code?')) {
+                        codeEditor.value = defaultCode;
+                        updatePreview();
+                        statusMessage.textContent = 'Code reset to default';
+                    }
+                });
+
+                // Tool buttons
+                toolButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        insertAtCursor(codeEditor, this.getAttribute('data-insert'));
+                        updatePreview();
+                    });
+                });
+
+                // Device view buttons
+                deviceButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const device = this.getAttribute('data-device');
+                        
+                        // Update active button
+                        deviceButtons.forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        // Update preview frame
+                        previewFrame.classList.remove('mobile-view', 'tablet-view', 'desktop-view');
+                        previewFrame.classList.add(device + '-view');
+                    });
+                });
+
+                // Save code on page unload
+                window.addEventListener('beforeunload', function() {
+                    localStorage.setItem('liveEditorCode', codeEditor.value);
+                });
+            }
+
+            // Update preview
+            function updatePreview() {
+                try {
+                    const code = codeEditor.value;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('liveEditorCode', code);
+                    
+                    // Create a complete HTML document
+                    const previewDocument = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>
+                                body { margin: 0; font-family: Arial, sans-serif; }
+                                ${extractCSS(code)}
+                            </style>
+                        </head>
+                        <body>
+                            ${extractHTML(code)}
+                            <script>
+                                ${extractJS(code)}
+                            <\/script>
+                        </body>
+                        </html>
+                    `;
+                    
+                    // Update iframe
+                    const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(previewDocument);
+                    iframeDoc.close();
+                    
+                    statusMessage.textContent = 'Preview updated successfully';
+                } catch (error) {
+                    statusMessage.textContent = 'Error updating preview';
+                    console.error(error);
+                }
+            }
+
+            // Extract HTML from code
+            function extractHTML(code) {
+                // Simple extraction - in a real app you'd want more sophisticated parsing
+                const htmlMatch = code.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                if (htmlMatch && htmlMatch[1]) {
+                    return htmlMatch[1];
+                }
+                
+                // If no body tags, try to extract any HTML content
+                const bodyStart = code.indexOf('<body');
+                const bodyEnd = code.indexOf('</body>');
+                
+                if (bodyStart !== -1 && bodyEnd !== -1) {
+                    return code.substring(bodyStart, bodyEnd + 7);
+                }
+                
+                // If all else fails, return the entire code
+                return code;
+            }
+
+            // Extract CSS from code
+            function extractCSS(code) {
+                const cssMatch = code.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+                return cssMatch ? cssMatch[1] : '';
+            }
+
+            // Extract JS from code
+            function extractJS(code) {
+                const jsMatch = code.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+                return jsMatch ? jsMatch[1] : '';
+            }
+
+            // Insert text at cursor position
+            function insertAtCursor(textarea, text) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const before = textarea.value.substring(0, start);
+                const after = textarea.value.substring(end, textarea.value.length);
+                
+                textarea.value = before + text + after;
+                textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                textarea.focus();
+            }
+
+            // Simple HTML formatter
+            function formatHTML(html) {
+                // This is a very basic formatter - for production use a library like js-beautify
+                let formatted = '';
+                let indent = 0;
+                const tokens = html.split(/(<[^>]*>)/g);
+                
+                tokens.forEach(token => {
+                    if (token.startsWith('</')) {
+                        indent--;
+                    }
+                    
+                    if (token.trim() !== '') {
+                        formatted += '  '.repeat(Math.max(0, indent)) + token + '\n';
+                    }
+                    
+                    if (token.startsWith('<') && !token.startsWith('</') && !token.endsWith('/>') && !token.startsWith('<!')) {
+                        indent++;
+                    }
+                });
+                
+                return formatted;
+            }
+
+            // Initialize the editor
+            init();
+        });
+    </script>
 </body>
-  </html>
+</html>
