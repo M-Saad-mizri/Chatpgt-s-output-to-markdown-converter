@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Responsive Live Code Editor</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; font-family: Arial, sans-serif;
+  }
+  #container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #editorWrapper {
+    flex-basis: 50%;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #ddd;
+    position: relative;
+    transition: flex-basis 0.3s ease;
+  }
+  #toolbar {
+    background: #f5f5f5;
+    padding: 5px 10px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  #toolbar button {
+    padding: 0 8px;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+  }
+  #toggleEditorBtn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 20;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #codeEditor {
+    flex: 1;
+    width: 100%;
+    font-family: monospace;
+    font-size: 14px;
+    padding: 10px;
+    border: none;
+    resize: none;
+    overflow: auto;
+    outline: none;
+    white-space: pre;
+  }
+  #editorWrapper.closed {
+    flex-basis: 0;
+    overflow: hidden;
+  }
+  #previewWrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+  }
+  #previewToolbar {
+    background: #f5f5f5;
+    padding: 5px 10px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #previewContainer {
+    flex: 1;
+    overflow: auto;
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  iframe {
+    border: 1px solid #ccc;
+    height: 70vh;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Responsive preview size presets */
+  .desktop iframe {
+    width: 100%;
+  }
+  .tablet iframe {
+    width: 768px;
+  }
+  .mobile iframe {
+    width: 375px;
+  }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="editorWrapper">
+    <div id="toolbar" aria-label="Quick insert buttons" role="toolbar">
+      <button type="button" data-insert="<">{"<"}</button>
+      <button type="button" data-insert=">">{">"}</button>
+      <button type="button" data-insert="</">{"</"}</button>
+      <button type="button" data-insert="<hr>">&lt;hr&gt;</button>
+      <button type="button" data-insert="<br>">&lt;br&gt;</button>
+      <button type="button" data-insert='id=""'>id=""</button>
+      <button type="button" data-insert='class=""'>class=""</button>
+    </div>
+    <textarea id="codeEditor" spellcheck="false" aria-label="Code editor - HTML, CSS, JavaScript"></textarea>
+    <button id="toggleEditorBtn" aria-pressed="true" aria-label="Toggle editor visibility">Hide Editor</button>
+  </div>
+  <div id="previewWrapper" class="desktop">
+    <div id="previewToolbar" role="toolbar" aria-label="Responsive preview toggle">
+      <label>
+        <input type="radio" name="previewSize" value="desktop" checked />
+        Desktop
+      </label>
+      <label>
+        <input type="radio" name="previewSize" value="tablet" />
+        Tablet
+      </label>
+      <label>
+        <input type="radio" name="previewSize" value="mobile" />
+        Mobile
+      </label>
+    </div>
+    <div id="previewContainer">
+      <iframe id="livePreview" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  const editor = document.getElementById('codeEditor');
+  const previewFrame = document.getElementById('livePreview');
+  const toggleBtn = document.getElementById('toggleEditorBtn');
+  const editorWrapper = document.getElementById('editorWrapper');
+  const previewWrapper = document.getElementById('previewWrapper');
+  const toolbar = document.getElementById('toolbar');
+
+  // Insert snippet at cursor position in textarea
+  function insertAtCursor(textarea, text) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const val = textarea.value;
+    textarea.value = val.substring(0, start) + text + val.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
+    updatePreview();
+    scrollToCaret(textarea);
+  }
+
+  // Update iframe preview content
+  function updatePreview() {
+    const code = editor.value;
+    // Compose HTML with embedded CSS/JS if included in code
+    const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+    doc.open();
+    doc.write(code);
+    doc.close();
+  }
+
+  // Auto-scroll to caret position in textarea
+  function scrollToCaret(textarea) {
+    const pos = textarea.selectionStart;
+    // Create a temporary div to get caret position
+    const div = document.createElement('div');
+    const style = window.getComputedStyle(textarea);
+    for (const prop of ['fontSize','fontFamily','whiteSpace','lineHeight','padding','border','boxSizing','letterSpacing','wordSpacing','textIndent','width','overflow','height']) {
+      div.style[prop] = style[prop];
+    }
+    div.style.position = 'absolute';
+    div.style.visibility = 'hidden';
+    div.style.whiteSpace = 'pre-wrap';
+    div.style.width = style.width;
+    div.style.height = 'auto';
+    div.textContent = textarea.value.substring(0, pos);
+
+    // Append a span where caret is
+    const span = document.createElement('span');
+    span.textContent = textarea.value.substring(pos) || '.';
+    div.appendChild(span);
+    document.body.appendChild(div);
+
+    const topPos = span.offsetTop;
+    // Scroll textarea to show caret with offset
+    textarea.scrollTop = topPos - textarea.clientHeight/2;
+    document.body.removeChild(div);
+  }
+
+  // Toolbar buttons insert quick snippets
+  toolbar.addEventListener('click', e => {
+    if (e.target.tagName === 'BUTTON' && e.target.dataset.insert !== undefined) {
+      insertAtCursor(editor, e.target.dataset.insert);
+    }
+  });
+
+  // On editor input, update preview and scroll to caret
+  editor.addEventListener('input', () => {
+    updatePreview();
+    scrollToCaret(editor);
+  });
+
+  // Toggle editor visibility
+  toggleBtn.addEventListener('click', () => {
+    if (editorWrapper.classList.contains('closed')) {
+      editorWrapper.classList.remove('closed');
+      toggleBtn.textContent = 'Hide Editor';
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      previewWrapper.style.flex = '1';
+    } else {
+      editorWrapper.classList.add('closed');
+      toggleBtn.textContent = 'Show Editor';
+      toggleBtn.setAttribute('aria-pressed', 'false');
+      previewWrapper.style.flex = '1 1 100%';
+    }
+  });
+
+  // Preview responsiveness toggle
+  document.getElementsByName('previewSize').forEach(radio => {
+    radio.addEventListener('change', e => {
+      previewWrapper.classList.remove('desktop', 'tablet', 'mobile');
+      previewWrapper.classList.add(e.target.value);
+    });
+  });
+
+  // Initialize with blank page content
+  editor.value = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Live Preview</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 10px; }
+</style>
+</head>
+<body>
+<h1>Hello, live preview!</h1>
+</body>
+</html>`;
+  updatePreview();
+</script>
+
+</body>
+  </html>
