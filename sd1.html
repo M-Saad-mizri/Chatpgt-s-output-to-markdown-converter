@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Code Editor & Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/monokai.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #007acc;
+            --dark-bg: #1e1e1e;
+            --darker-bg: #161616;
+            --toolbar-bg: #2d2d30;
+            --border-color: #3e3e42;
+            --text-color: #d4d4d4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: var(--toolbar-bg);
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            background: #005a9e;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .editor-section {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            background: var(--darker-bg);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .editor-section.collapsed {
+            width: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background: var(--toolbar-bg);
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .tool-btn {
+            background: #3e3e42;
+            color: var(--text-color);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #4a4a4f;
+        }
+
+        .editor-container {
+            flex: 1;
+            overflow: auto;
+            height: 70vh;
+            position: relative;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .preview-section {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+        }
+
+        .preview-section.expanded {
+            width: 100%;
+        }
+
+        .preview-toolbar {
+            background: var(--toolbar-bg);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .device-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .device-btn {
+            background: #3e3e42;
+            color: var(--text-color);
+            border: none;
+            padding: 5px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .device-btn.active {
+            background: var(--primary-color);
+        }
+
+        .preview-container {
+            flex: 1;
+            overflow: auto;
+            height: 70vh;
+            background: white;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .mobile-view {
+            width: 375px;
+            margin: 0 auto;
+            height: 100%;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+        }
+
+        .tablet-view {
+            width: 768px;
+            margin: 0 auto;
+            height: 100%;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+        }
+
+        .desktop-view {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-bar {
+            background: var(--primary-color);
+            padding: 5px 15px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .templates-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--toolbar-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 100;
+            min-width: 200px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .templates-menu.show {
+            display: block;
+        }
+
+        .template-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 5px;
+        }
+
+        .template-item:hover {
+            background: #3e3e42;
+        }
+
+        .error-indicator {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .editor-section, .preview-section {
+                width: 100%;
+                height: 60vh;
+            }
+            
+            .editor-section.collapsed {
+                height: 0;
+            }
+            
+            .preview-section.expanded {
+                height: 100vh;
+            }
+            
+            .controls {
+                gap: 5px;
+            }
+            
+            .btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Live Code Editor</h1>
+            <div class="controls">
+                <button id="toggleEditor" class="btn">
+                    <span>Hide Editor</span>
+                </button>
+                <button id="templatesBtn" class="btn btn-outline">
+                    <span>Templates</span>
+                </button>
+                <div class="templates-menu" id="templatesMenu">
+                    <div class="template-item" data-template="basic">Basic HTML</div>
+                    <div class="template-item" data-template="bootstrap">Bootstrap Starter</div>
+                    <div class="template-item" data-template="landing">Landing Page</div>
+                    <div class="template-item" data-template="portfolio">Portfolio</div>
+                </div>
+                <button id="formatBtn" class="btn btn-outline">
+                    <span>Format Code</span>
+                </button>
+                <button id="downloadBtn" class="btn btn-outline">
+                    <span>Download</span>
+                </button>
+                <button id="undoBtn" class="btn btn-outline">
+                    <span>Undo</span>
+                </button>
+                <button id="redoBtn" class="btn btn-outline">
+                    <span>Redo</span>
+                </button>
+                <button id="resetBtn" class="btn btn-danger">
+                    <span>Reset</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="editor-toolbar">
+                    <button class="tool-btn" data-insert="<div>">div</button>
+                    <button class="tool-btn" data-insert="<p>">p</button>
+                    <button class="tool-btn" data-insert="<span>">span</button>
+                    <button class="tool-btn" data-insert="<h1>">h1</button>
+                    <button class="tool-btn" data-insert="<br>">br</button>
+                    <button class="tool-btn" data-insert="<hr>">hr</button>
+                    <button class="tool-btn" data-insert='class=""'>class</button>
+                    <button class="tool-btn" data-insert='id=""'>id</button>
+                    <button class="tool-btn" data-insert="&lt;/&gt;">&lt;/&gt;</button>
+                    <button class="tool-btn" data-insert='&lt;!--  --&gt;'>comment</button>
+                </div>
+                <div class="editor-container">
+                    <textarea id="codeEditor"></textarea>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-toolbar">
+                    <div class="device-options">
+                        <button class="device-btn active" data-device="desktop">Desktop</button>
+                        <button class="device-btn" data-device="tablet">Tablet</button>
+                        <button class="device-btn" data-device="mobile">Mobile</button>
+                    </div>
+                    <button id="refreshBtn" class="btn">Refresh Preview</button>
+                </div>
+                <div class="preview-container">
+                    <iframe id="previewFrame" class="preview-frame desktop-view"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="statusMessage">Ready</span>
+            <span id="errorIndicator"></span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/matchtags.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/fold/xml-fold.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const codeEditor = document.getElementById('codeEditor');
+            const previewFrame = document.getElementById('previewFrame');
+            const toggleEditorBtn = document.getElementById('toggleEditor');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const formatBtn = document.getElementById('formatBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const templatesBtn = document.getElementById('templatesBtn');
+            const templatesMenu = document.getElementById('templatesMenu');
+            const toolButtons = document.querySelectorAll('.tool-btn');
+            const deviceButtons = document.querySelectorAll('.device-btn');
+            const statusMessage = document.getElementById('statusMessage');
+            const errorIndicator = document.getElementById('errorIndicator');
+            const editorSection = document.querySelector('.editor-section');
+            const previewSection = document.querySelector('.preview-section');
+            
+            // CodeMirror editor instance
+            let editor;
+            
+            // Template definitions
+            const templates = {
+                basic: `<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to My Page</h1>
+        <p>This is a basic HTML template.</p>
+        <p>Start editing to create your own content!</p>
+    </div>
+</body>
+</html>`,
+                bootstrap: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap Template</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">MySite</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Services</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero text-center">
+        <div class="container">
+            <h1 class="display-4">Welcome to Our Site</h1>
+            <p class="lead">A modern responsive website built with Bootstrap</p>
+            <a href="#" class="btn btn-light btn-lg mt-3">Get Started</a>
+        </div>
+    </section>
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Feature One</h5>
+                        <p class="card-text">Some quick example text to build on the card title.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Feature Two</h5>
+                        <p class="card-text">Some quick example text to build on the card title.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Feature Three</h5>
+                        <p class="card-text">Some quick example text to build on the card title.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`,
+                landing: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing Page</title>
+    <style>
+        :root {
+            --primary: #4a6cf7;
+            --dark: #1d2144;
+            --light: #f5f5f5;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #3a5ce5;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 30px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .hero {
+            padding: 150px 0 100px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 700px;
+            margin: 0 auto 30px;
+            color: #555;
+        }
+        
+        .features {
+            padding: 100px 0;
+            background: white;
+        }
+        
+        .section-title {
+            text-align: center;
+      
